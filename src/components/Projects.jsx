@@ -22,7 +22,7 @@ const PROJECTS = [
         ],
         live: 'https://schduler-fc.vercel.app/',
         github: 'https://github.com/g4rrzx/farcaster-scheduler',
-        image: '/image/fcscheduler.png',
+        image: '/image/FCScheduler.png',
     },
 
     {
