@@ -32,14 +32,42 @@ const labelStyle = {
 export default function Contact() {
     const ref = useRef(null)
     const inView = useInView(ref, { once: true, margin: '-60px' })
-    const [submitted, setSubmitted] = useState(false)
+    const [status, setStatus] = useState('')
+    const [formData, setFormData] = useState({ name: '', email: '', message: '' })
 
-    const handleSubmit = useCallback((e) => {
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value })
+    }
+
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        setSubmitted(true)
-        setTimeout(() => setSubmitted(false), 4000)
-        e.target.reset()
-    }, [])
+        setStatus('Sending...')
+
+        try {
+            const currentData = { ...formData, access_key: 'd190b69d-8680-401c-9006-5895621d4482' }
+            const response = await fetch('https://api.web3forms.com/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json'
+                },
+                body: JSON.stringify(currentData)
+            })
+
+            const result = await response.json()
+            if (result.success) {
+                setStatus('Message Sent!')
+                setFormData({ name: '', email: '', message: '' })
+                setTimeout(() => setStatus(''), 4000)
+            } else {
+                setStatus('Failed to send.')
+                setTimeout(() => setStatus(''), 4000)
+            }
+        } catch (error) {
+            setStatus('Failed to send.')
+            setTimeout(() => setStatus(''), 4000)
+        }
+    }
 
     return (
         <section id="contact" ref={ref} style={{ position: 'relative', padding: '100px 0 0' }} aria-label="Contact">
@@ -68,41 +96,48 @@ export default function Contact() {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                 <div>
                                     <label htmlFor="contact-name" style={labelStyle}>Name</label>
-                                    <input type="text" id="contact-name" name="name" required aria-required="true" placeholder="Your name" style={inputStyle}
+                                    <input type="text" id="contact-name" name="name" value={formData.name} onChange={handleChange} required aria-required="true" placeholder="Your name" style={inputStyle}
                                         onFocus={e => e.target.style.borderColor = 'rgba(124,108,240,0.5)'}
                                         onBlur={e => e.target.style.borderColor = 'rgba(42,42,80,0.4)'} />
                                 </div>
                                 <div>
                                     <label htmlFor="contact-email" style={labelStyle}>Email</label>
-                                    <input type="email" id="contact-email" name="email" required aria-required="true" placeholder="you@email.com" style={inputStyle}
+                                    <input type="email" id="contact-email" name="email" value={formData.email} onChange={handleChange} required aria-required="true" placeholder="you@email.com" style={inputStyle}
                                         onFocus={e => e.target.style.borderColor = 'rgba(124,108,240,0.5)'}
                                         onBlur={e => e.target.style.borderColor = 'rgba(42,42,80,0.4)'} />
                                 </div>
                             </div>
                             <div>
                                 <label htmlFor="contact-message" style={labelStyle}>Message</label>
-                                <textarea id="contact-message" name="message" required aria-required="true" rows={5}
+                                <textarea id="contact-message" name="message" value={formData.message} onChange={handleChange} required aria-required="true" rows={5}
                                     placeholder="Tell me about your project..."
                                     style={{ ...inputStyle, resize: 'none' }}
                                     onFocus={e => e.target.style.borderColor = 'rgba(124,108,240,0.5)'}
                                     onBlur={e => e.target.style.borderColor = 'rgba(42,42,80,0.4)'} />
                             </div>
-                            <button type="submit" id="contact-submit" style={{
+                            <button type="submit" id="contact-submit" disabled={status === 'Sending...'} style={{
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                 padding: '14px 32px', borderRadius: '9999px', width: 'fit-content',
-                                background: 'var(--color-accent)', color: '#fff',
-                                fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em',
-                                border: 'none', cursor: 'pointer', transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                                background: status === 'Sending...' ? 'rgba(124,108,240,0.5)' : 'var(--color-accent)',
+                                color: '#fff', fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em',
+                                border: 'none', cursor: status === 'Sending...' ? 'not-allowed' : 'pointer',
+                                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                             }}
-                                onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 30px rgba(124,108,240,0.35)' }}
-                                onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = 'none' }}
+                                onMouseEnter={e => { if (status !== 'Sending...') { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 30px rgba(124,108,240,0.35)' } }}
+                                onMouseLeave={e => { if (status !== 'Sending...') { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = 'none' } }}
                             >
-                                {submitted ? 'Message Sent!' : 'Send Message'} <Send size={14} />
+                                {status === 'Sending...' ? 'Sending...' : status === 'Message Sent!' ? 'Message Sent!' : 'Send Message'} <Send size={14} />
                             </button>
-                            {submitted && (
+                            {status === 'Message Sent!' && (
                                 <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                                     style={{ color: 'var(--color-success)', fontSize: '14px', fontWeight: 500 }} aria-live="polite">
                                     Thanks for reaching out! I'll get back to you soon.
+                                </motion.p>
+                            )}
+                            {status === 'Failed to send.' && (
+                                <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                                    style={{ color: '#ff5f56', fontSize: '14px', fontWeight: 500 }} aria-live="polite">
+                                    Oops! Something went wrong. Please email directly.
                                 </motion.p>
                             )}
                         </motion.form>
